@@ -86,6 +86,11 @@
           VALIDATION: "{{ validation }}"
           DNSPLUGIN: "{{ dns_plugin }}"
           DUCKDNSTOKEN: "{{ dns_token }}"
+          SUBDOMAINS: ""
+          ONLY_SUBDOMAINS: "false"
+          VALIDATION: "http"
+          CERTPROVIDER: "" 
+          STAGING: "false"
         volumes:
           - "{{ swag_volume_path }}"
         ports:
