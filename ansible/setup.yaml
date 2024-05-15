@@ -1,0 +1,151 @@
+---
+# Some things to know
+# DuckDNS must be pointing to your VM IP address; if it doesn't SWAG won't 
+# load because it won't be able to generate a HTTPS certificate
+# Also alter all the vars below to whatever your configuration is
+# Also add the VM public IP address to the hosts.ini file
+
+- name: Install Docker on webserver
+  hosts: webserver
+  become: yes
+  vars:
+    timezone: "Australia/Melbourne"
+    url: "something.duckdns.org"
+    validation: "dns"
+    dns_plugin: "duckdns"
+    dns_token: "get-duckdns-token"
+    swag_volume_path: "/home/user/swag:/config"
+    swag_duckdns_path: "/home/ubuntu/swag/dns-conf/duckdns.ini"
+    mysql_root_password: "password"
+    mysql_database: "database"
+    mysql_username: "user"
+    mysql_password: "password"
+    mysql_volume_path: "/home/user/mariadb:/config"
+    ping_ip: "google.com"
+  tasks:
+    - name: Ping google.com
+      command: ping -c 4 "{{ ping_ip }}"
+      register: ping_result
+
+    - name: Display ping results
+      debug:
+        var: ping_result.stdout_lines
+
+    - name: Install aptitude
+      apt:
+        name: aptitude
+        state: latest
+        update_cache: true
+
+    - name: Install required system packages
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - python3-pip
+          - virtualenv
+          - python3-setuptools
+        state: latest
+        update_cache: true
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Update apt and install docker-ce
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: true
+
+    - name: Install Docker Module for Python
+      pip:
+        name: docker
+
+    - name: Start Docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Create SWAG container
+      docker_container:
+        name: swag
+        image: linuxserver/swag
+        env:
+          TZ: "{{ timezone }}"
+          URL: "{{ url }}"
+          VALIDATION: "{{ validation }}"
+          DNSPLUGIN: "{{ dns_plugin }}"
+          DUCKDNSTOKEN: "{{ dns_token }}"
+        volumes:
+          - "{{ swag_volume_path }}"
+        ports:
+          - "443:443"
+          - "80:80"
+        container_default_behavior: no_defaults
+
+    - name: Replace a value in duckdns INI file
+      community.general.ini_file:
+        section: config
+        path: "{{ swag_duckdns_path }}"
+        option: dns_duckdns_token
+        value: "{{ dns_token }}"
+
+    - name: Restart SWAG container instance
+      community.docker.docker_container:
+        name: swag
+        state: started
+        restart: true
+        container_default_behavior: no_defaults
+
+    
+
+    - name: Create MariaDB container
+      docker_container:
+        name: mariadb
+        image: lscr.io/linuxserver/mariadb:latest
+        env:
+          PUID: "1000"
+          PGID: "1000"
+          TZ: "{{ timezone }}"
+          MYSQL_ROOT_PASSWORD: "{{ mysql_root_password }}"
+          MYSQL_DATABASE:  "{{ mysql_database }}"
+          MYSQL_USER:  "{{ mysql_username }}"
+          MYSQL_PASSWORD:  "{{ mysql_password }}"
+        volumes:
+           "{{ mysql_volume_path }}"
+        ports:
+          - "3306:3306"
+        restart_policy: unless-stopped
+        container_default_behavior: no_defaults
+
+    - name: Create Portainer data volume
+      docker_volume:
+        name: portainer_data
+
+    - name: Pull Portainer image
+      docker_image:
+        name: portainer/portainer-ce:latest
+        state: present
+
+    - name: Run Portainer container
+      docker_container:
+        name: portainer
+        image: portainer/portainer-ce:latest
+        ports:
+          - "8000:8000"
+          - "9443:9443"
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+          - portainer_data:/data
+        restart_policy: unless-stopped
+        container_default_behavior: no_defaults
