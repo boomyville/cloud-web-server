@@ -132,10 +132,9 @@
       docker_volume:
         name: portainer_data
 
-    - name: Pull Portainer image
-      docker_image:
-        name: portainer/portainer-ce:latest
-        state: present
+    - name: Pull portainer
+      ansible.builtin.shell:
+        cmd: docker pull portainer/portainer-ce:2.20.2        
 
     - name: Install portainer
       ansible.builtin.shell:
