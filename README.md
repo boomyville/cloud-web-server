@@ -1,7 +1,11 @@
 # Oracle Cloud Free Tier Website
 A collection of terraform and ansible scripts to deploy an NGINX web server running in a docker container on Oracle Cloud (or Microsoft Azure) using the free tier service
 
-![](https://github.com/boomyville/cloud-web-server/raw/main/AzureDemo.mp4)
+
+
+https://github.com/boomyville/cloud-web-server/assets/25078604/cd0964b6-933d-41fc-85bf-aec98699937a
+
+
 
 ## Using Terraform and Ansible to automate the process
 
