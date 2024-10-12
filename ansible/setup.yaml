@@ -88,7 +88,6 @@
           DUCKDNSTOKEN: "{{ dns_token }}"
           SUBDOMAINS: ""
           ONLY_SUBDOMAINS: "false"
-          VALIDATION: "http"
           CERTPROVIDER: "" 
           STAGING: "false"
         volumes:
